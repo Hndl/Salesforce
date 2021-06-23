@@ -1,0 +1,14 @@
+trigger ClosedOpportunityTrigger on Opportunity (after insert, after update) {
+    final String CONST_SUBJECT = 'Follow Up Test Task';
+    final String CONST_STAGENAME = 'Closed Won';
+	List<Task> lstTasks = new List<Task>();
+    for (Opportunity opp : Trigger.New) {
+    	if ( opp.StageName.containsIgnoreCase(CONST_STAGENAME)  ) {        	
+        	lstTasks.add ( new Task ( Subject = CONST_SUBJECT, WhatId = opp.Id  ));
+		}        
+	}
+    
+    if ( lstTasks.size() > 0){
+        insert lstTasks;
+    }
+}
