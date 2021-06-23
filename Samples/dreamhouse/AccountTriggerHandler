@@ -1,0 +1,7 @@
+public class AccountTriggerHandler {
+    public static void CreateAccounts( List<Account> lstAccount ) {
+        for (Account acc : lstAccount ){
+       		acc.ShippingState = acc.BillingState;
+        }
+    }
+          
