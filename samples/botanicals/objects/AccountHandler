@@ -1,0 +1,41 @@
+public class AccountHandler {
+    public static Account insertNewAccount ( String accountName ) {
+    	final String FUNC = 'AccountHandler.insertNewAccount::';
+        Account oAcc = null;
+        if ( String.isEmpty(accountName) )
+            return oAcc;
+        
+        try{
+             oAcc = new Account(Name=accountName);
+			insert oAcc;
+        } catch ( DmlException ex ) {
+            System.debug(FUNC + ' - ' + accountName + ' - '  + ex.getStackTraceString());
+        }
+        
+        return (oAcc);
+        
+    }
+    
+    
+	public static void insertAccount(Integer n){
+        
+        Integer counter = 1;
+        List<Account> addAccounts = new List<Account>();
+        
+        while(counter <= n){            
+            System.debug('Counter Value Incrementing ' + counter);
+            
+            Account store = new Account();                        
+            store.Name = 'Acme Inc ' + counter;
+            store.AccountNumber = 'A000' + counter;            
+            addAccounts.add(store);                                    
+            counter = counter + 1;
+           
+        }
+        System.debug('Size of Account List: ' + addAccounts.size() );
+        System.debug('Elements in Account List: ' + addAccounts);        
+        insert addAccounts;
+    }
+    
+    
+}
