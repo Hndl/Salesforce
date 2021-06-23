@@ -1,0 +1,41 @@
+@isTest
+public class TestVerifyDate {
+    
+ 
+  	@isTest static void testTaskLeapYear (){
+       
+        Date start_ddmmyy 	 = Date.newInstance(2020,2,1);
+        Date end_ddmmyy 	 = Date.newInstance(2020,3,10);
+        Date expect_ddmmyy 	 = Date.newInstance(2020,2,29);
+                
+        Date actual_ddmmyy 	= VerifyDate.CheckDates(start_ddmmyy,end_ddmmyy);
+                
+        System.assertEquals(expect_ddmmyy, actual_ddmmyy);
+
+        
+    }      
+    
+     @isTest static void testTaskSameMonth1 (){
+        
+        Date start_ddmmyy 	 = Date.newInstance(2019,1,1);
+        Date end_ddmmyy 	 = Date.newInstance(2019,1,31);
+                
+        Date actual_ddmmyy 	= VerifyDate.CheckDates(start_ddmmyy,end_ddmmyy);
+                
+        System.assertEquals(end_ddmmyy, actual_ddmmyy);
+                      
+    }
+    
+    @isTest static void testTaskSameMonth (){
+        
+        Date start_ddmmyy 	 = Date.newInstance(2019,1,1);
+        Date end_ddmmyy 	 = Date.newInstance(2019,1,30);
+                
+        Date actual_ddmmyy 	= VerifyDate.CheckDates(start_ddmmyy,end_ddmmyy);
+                
+        System.assertEquals(end_ddmmyy, actual_ddmmyy);
+                      
+    }
+    
+
+}
