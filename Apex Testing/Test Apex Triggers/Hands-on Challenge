@@ -1,0 +1,11 @@
+trigger RestrictContactByName on Contact (before insert, before update) {
+   
+    final String CONST_ILLEGAL_LASTNAME = 'INVALIDNAME';
+    final String CONST_ERROR_INVALID_NAME = 'The Last Name "'+CONST_ILLEGAL_LASTNAME+'" is not allowed for DML';
+    
+    for ( Contact con : Trigger.new) {        
+        if (con.lastName == CONST_ILLEGAL_LASTNAME ){
+            con.addError(CONST_ERROR_INVALID_NAME);
+        }
+    }
+}
