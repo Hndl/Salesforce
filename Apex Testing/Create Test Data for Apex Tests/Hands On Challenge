@@ -1,0 +1,18 @@
+
+public class RandomContactFactory {             
+	
+    public static List<Contact> generateRandomContacts  ( Integer numberOfContacts, String contactLastName ) {
+        
+    	List<Contact> lstNewContacts = new List<Contact>();
+        
+        final String CONST_PRENAME = 'test:';
+        
+        for ( Integer i = 0 ; i < numberOfContacts ; i ++ ) {
+        	lstNewContacts.add(new Contact(FirstName=CONST_PRENAME+i,LastName=contactLastName));
+        }
+        
+        return (lstNewContacts);
+    }
+    
+    
+}
