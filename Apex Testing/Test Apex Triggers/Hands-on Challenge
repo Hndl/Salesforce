@@ -9,3 +9,132 @@ trigger RestrictContactByName on Contact (before insert, before update) {
         }
     }
 }
+
+
+@isTest
+public class TestRestrictContactByName {
+    
+    public static Account makeAccount ( String nme ) {
+        Account acc = new Account(Name=nme);
+        return (acc);
+    }
+    
+    public static Contact makeContact ( String fName, String lName,Integer n, Account acc ) {
+        
+        
+        final String term_lname = (n == -1 ? lName : lName+':'+n);
+        
+        Contact con = new Contact( FirstName=fName+':'+n, LastName=term_lname,AccountId = acc.id);
+        return (con);
+    }
+    
+    public static Contact getContact ( String fName, String lName,Integer n, Account acc ) {
+        
+        final String searchTerm_fname = fName+':'+n;
+        final String searchTerm_lname = (n == -1 ? lName : lName+':'+n);
+        Contact con = null;
+        List<Contact> lstContacts = [SELECT id,Name,LastName,FirstName,AccountId
+                                     FROM Contact                                                                                                       
+                                     WHERE LastName = :searchTerm_lname
+                                     AND FirstName = :searchTerm_fname
+                                    ];
+        if ( lstContacts.size() > 0 ) {
+        	con = lstContacts[0];
+        }
+        
+        return (con);
+        
+    }
+    
+    public static void basicInValidTest ( String fName, String lName, Integer n, Account acc ) {
+        
+        final String CONST_EXCEPTION_MSG = 'The Last Name \"INVALIDNAME\" is not allowed for DML';        
+        final Contact con = TestRestrictContactByName.makeContact(fName,lName,-1,acc);
+        
+        Test.startTest();
+        try{
+        	insert con;
+        } catch (DmlException ex ) {
+            // test, we expect the exception to be thrown and for the message on the exception to pertain to the 
+            // INVALIDNAME reason.  So, check the exception message for the reason...                                      
+            System.assertEquals(true, (ex.getMessage()).contains(CONST_EXCEPTION_MSG));
+            
+        }
+        Test.stopTest();
+       	
+        // we should NOT find the contact in the database, so findContact must be null!
+        Contact findContact = TestRestrictContactByName.getContact(fName,lName,-1,acc);        
+        System.assert(findContact==null);             
+    } 
+         
+    public static void basicValidTest ( String fName, String lName, Integer n, Account acc ) {
+        
+        Contact con = TestRestrictContactByName.makeContact(fName,lName,n,acc);
+        
+        Test.startTest();
+        insert con;
+        Test.stopTest();
+       	
+        
+        Contact findContact = TestRestrictContactByName.getContact(fName,lName,n,acc);
+        
+        System.assert(findContact!=null);
+     
+        System.assertEquals(findContact.LastName, lName+':'+n);
+        System.assertEquals(findContact.FirstName, fName +':'+n);
+        System.assertEquals(findContact.AccountId, acc.id);
+    } 
+    
+    public static void bulkValidTest ( String fName, String lName, Integer n, Account acc ) {
+        
+        List<Contact> lstCon = new List<Contact>();
+        for ( Integer i = 0 ; i < n ; i++) {
+        	lstCon.add(TestRestrictContactByName.makeContact(fName,lName,i,acc));
+        }
+        
+        Test.startTest();
+        insert lstCon;
+        Test.stopTest();
+       	
+         for ( Integer i = 0 ; i < n ; i++) {
+         	Contact findContact = TestRestrictContactByName.getContact(fName,lName,i,acc);
+        	
+            System.assert(findContact!=null);
+        	System.assertEquals(findContact.LastName, lName+':'+n);
+        	System.assertEquals(findContact.FirstName, fName +':'+n);
+        	System.assertEquals(findContact.AccountId, acc.id);	
+        }
+        
+    } 
+        
+    
+    @isTest static void testTaskSingleContactValid() {
+        final String  a = 'mi5';
+        final String  f = 'james';
+        final String  s = 'pond';
+                
+        Account acc = TestRestrictContactByName.makeAccount(a);
+        TestRestrictContactByName.basicValidTest(f,s,0,acc);        
+        
+    }
+    
+    @isTest static void testTaskBulkContactValid() {
+        final String  a = 'mi5';
+        final String  f = 'james';
+        final String  s = 'pond';
+                
+        Account acc = TestRestrictContactByName.makeAccount(a);
+        TestRestrictContactByName.bulkValidTest(f,s,0,acc);        
+        
+    }
+    
+    @isTest static void testTaskInvalidContactValid() {
+        final String  a = 'mi5';
+        final String  f = 'james';
+        final String  s = 'INVALIDNAME';         
+                
+        Account acc = TestRestrictContactByName.makeAccount(a);
+        TestRestrictContactByName.basicInValidTest(f,s,0,acc);        
+        
+    }
+    
