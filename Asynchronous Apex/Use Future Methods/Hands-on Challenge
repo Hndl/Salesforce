@@ -1,0 +1,77 @@
+global class AccountProcessor {
+    @future
+    public static void countContacts(List<Id> lstAccountIds) {
+        
+        if (lstAccountIds.isEmpty() ) {
+            
+            System.debug('countContacts: no ids');
+            return;
+            
+        }
+        
+		System.debug('countContacts:' + lstAccountIds);
+        try{
+        	            
+            List<Account> lstAccounts = [SELECT ID,
+                                         		Name,
+                                         		Number_Of_Contacts__c
+                                         FROM Account
+                                         WHERE Id IN :lstAccountIds];
+            
+            Map<Id,AggregateResult> mpContacts = new Map<id,AggregateResult>([SELECT AccountId Id, 
+                                                                              		 COUNT(Id) ContactCount 
+                                                                              FROM Contact 
+                                                                              WHERE AccountId IN :lstAccountIds 
+                                                                              GROUP BY AccountId]);
+            
+            if ( mpContacts.isEmpty() ) {
+                
+                System.debug('countContacts: no contacts located.');
+            	return;
+                
+            }
+            
+            List<Account> lstUpdatedAccounts = new List<Account>();
+            
+            for ( Account acc : lstAccounts ) {
+                
+                AggregateResult contactCount = mpContacts.get(acc.id);
+                
+                if ( contactCount != null) {
+                    
+                    Integer numberOfContacts = Integer.valueof(contactCount.get('ContactCount'));                   
+                    System.debug(acc.id + ' - Processing accoundId ' + ' current contact count: ' + acc.Number_Of_Contacts__c + ', new count ' + numberOfContacts);
+                    
+                    if (acc.Number_Of_Contacts__c != numberOfContacts ){
+                        
+                    	acc.Number_Of_Contacts__c = numberOfContacts;
+                        System.debug(acc.id + ' contact count mismatch - update: ' + numberOfContacts );
+                        lstUpdatedAccounts.add(acc);
+                        
+                    } else {
+                        
+                        System.debug(acc.id + ' contact count match - skip' );
+                        
+                    }
+                                                      
+                } else {
+                    
+                    System.debug(acc.id + ' not in map - skip' );
+                    
+                }
+            }
+            
+            if (lstUpdatedAccounts.size() > 0 ) {
+                
+            	System.debug('updates for ' + lstUpdatedAccounts ); 
+                update lstUpdatedAccounts;
+                System.debug('updates done' ); 
+                
+            }
+        } catch ( DmlException ex ){
+            
+            System.debug('countContacts exception whilst processing ' + lstAccountIds + ' error:' + ex.getMessage());
+            
+        }
+    }
+}
