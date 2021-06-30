@@ -1,0 +1,115 @@
+public class LeadProcessor implements Database.Batchable<sObject>,Database.Stateful {
+    
+    public static final String CONST_LEADSOURCE_DREAMFORCE = 'DreamForce';
+    public static final String FUNC = 'LeadProcessor:';
+    private Integer iFailedBatchCount = 0;
+    private Integer iSuccessBatchCount = 0;
+    
+    public Database.QueryLocator start(Database.BatchableContext bc) {
+        
+        System.debug(FUNC + ':start:-' + bc);
+        
+        return ( Database.getQueryLocator([SELECT Id, 
+                                  		 		  Leadsource 
+                                  		 	FROM  Lead
+                                          	WHERE LeadSource != :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE]) );
+        
+    }
+    
+    public void execute(Database.BatchableContext bc, List<Lead> recordSet){
+       System.debug(FUNC + ':execute:-' + bc);
+        
+       if ( recordSet == null || recordSet.isEmpty() )
+          return;
+        
+       try { 
+            
+        	for ( Lead l : recordSet)
+        		l.LeadSource = LeadProcessor.CONST_LEADSOURCE_DREAMFORCE;
+        
+        	Database.update(recordSet);            
+            this.iSuccessBatchCount++;
+
+       } catch (DmlException ex ) {
+            
+            this.iFailedBatchCount++;
+            System.debug(FUNC + ':execute: -' + bc + 'exception:' + ex.getMessage());
+            
+       }
+        
+        return;
+        
+    }
+    public void finish(Database.BatchableContext bc){
+        
+       System.debug(FUNC + ':finish:-' + bc + ' success/failed = '+ this.iSuccessBatchCount + '/' + this.iFailedBatchCount);
+       return;
+        
+    }
+
+}
+
+
+@isTest
+public class LeadProcessorTest {
+    
+    public static Lead generateLead( integer idx ){   
+        
+        return ( new Lead(LastName='bob:'+idx, Company='company:'+idx,NumberOfEmployees=idx));
+    }
+    
+    @testSetup static void setup( ) {
+        final Integer n = 200;
+        List<Lead> lst = new List<Lead>();
+        for ( integer i = 0 ; i < n ; i++)
+            lst.add( LeadProcessorTest.generateLead(i));
+    	
+        insert lst;
+        
+        return;
+        
+    }
+	
+    @isTest static void testTask_UpdateLeads () {
+        
+        List<Lead> dbBeforeSnapShotNotSet = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE != :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+        List<Lead> dbBeforeSnapShotAreSet = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE = :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+            
+		Test.startTest();
+        
+        LeadProcessor lpBatch = new LeadProcessor();        
+        
+        Id batchId = Database.executeBatch(lpBatch);
+        
+        Test.stopTest();
+        
+        List<Lead> dbAfterSnapShot = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE = :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+        
+        System.assertEquals(dbBeforeSnapShotNotSet.size()+dbBeforeSnapShotAreSet.size(), dbAfterSnapShot.size());            
+        
+    }
+    
+     @isTest static void testTask_NothingToUpdateLeads () {
+        
+        List<Lead> dbBeforeSnapShotNotSet = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE != :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+        List<Lead> dbBeforeSnapShotAreSet = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE = :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+        for ( Lead l : dbBeforeSnapShotNotSet){
+        	l.LeadSource = LeadProcessor.CONST_LEADSOURCE_DREAMFORCE;
+        }
+        update dbBeforeSnapShotNotSet;
+            
+		Test.startTest();
+        
+        LeadProcessor lpBatch = new LeadProcessor();        
+        
+        Id batchId = Database.executeBatch(lpBatch);
+        
+        Test.stopTest();
+        
+        List<Lead> dbAfterSnapShot = [SELECT ID, NAME, LEADSOURCE FROM LEAD WHERE LEADSOURCE = :LeadProcessor.CONST_LEADSOURCE_DREAMFORCE];
+        
+        System.assertEquals(dbBeforeSnapShotNotSet.size()+dbBeforeSnapShotAreSet.size(), dbAfterSnapShot.size());            
+        
+    }
+}
+
