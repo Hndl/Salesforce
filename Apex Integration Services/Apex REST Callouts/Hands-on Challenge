@@ -170,6 +170,17 @@ public class AnimalLocatorTest {
                 
     }
     
+     @isTest static void testTaskSimplePayloadAnimalFoundHTTPMock() {
+                
+        
+        Test.setMock(HttpCalloutMock.class, new AnimalLocatorMock()); 
+        
+        String animalName = AnimalLocator.getAnimalNameById(1);
+        
+        System.assertEquals('bear',animalName,'The name of the animal should be bear');
+                
+    }
+    
      @isTest static void testTaskSimplePayloadAnimalNotFound() {
                 
         StaticResourceCalloutMock mock = new StaticResourceCalloutMock();
@@ -215,6 +226,18 @@ public class AnimalLocatorTest {
                 
     }
     
-    
+    @isTest
+global class AnimalLocatorMock implements HttpCalloutMock {
+    // Implement this interface method
+    global HTTPResponse respond(HTTPRequest request) {        
+        HttpResponse response = new HttpResponse();
+        response.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        response.setBody('{"animal":{"id":2,"name":"bear","eats":"berries, campers, adam seligman","says":"yum yum"}}');
+        response.setStatusCode(AnimalLocator.HTTP_OK);
+        return response; 
+    }
+}
+
+
 
 }
