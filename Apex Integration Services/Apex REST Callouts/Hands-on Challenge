@@ -1,0 +1,220 @@
+public class AnimalLocator {
+    public static final String ENDPOINT = 'https://th-apex-http-callout.herokuapp.com/animals';
+    public static final String MIMETYPE_JSONPAYLOAD_UTF8 = 'application/json;charset=UTF-8';
+    public static final String HEADER_ATTR_CONTENTTYPE = 'Content-Type';
+    
+    
+    public static final String METHOD_GET = 'GET';
+    public static final String METHOD_POST = 'POST';
+    public static final Integer HTTP_OK = 200;
+    public static final Integer HTTP_CREATED = 201;
+    
+   
+    
+  	
+    public static Map<String,Object>  deserializeResponseBody ( HttpResponse Response ) {
+        
+        if ( Response == null ||  AnimalLocator.blank(Response.getBody()) ) 
+            return null;
+        
+        return ( (Map<String, Object>) JSON.deserializeUntyped(response.getBody()));
+    }
+	
+                
+	public static boolean requestSuccessful ( HttpResponse Response ){
+    	return (response.getStatusCode() == AnimalLocator.HTTP_OK || response.getStatusCode() == AnimalLocator.HTTP_CREATED );         
+    }
+                 
+    public static HttpResponse get( String endPointURL) {
+    	Http http = new Http();
+        HttpRequest Request = new HttpRequest();
+        HttpResponse Response = null;
+        
+        Request.setEndpoint(endPointURL);        
+        Request.setMethod(AnimalLocator.METHOD_GET);
+        Response = http.send(request);
+        
+        System.debug('get->target url:' + endPointURL + ' http ecode:' + Response.getStatusCode() + ' ,status: ' + Response.getStatus());    
+        
+        return (Response);
+    }
+                
+	public static boolean blank ( String s ) {
+    	return ( s == null || s.trim().length() == 0);
+	}
+    /*
+	public static HttpResponse post( String endPointURL, String mimeType, String payload ) {
+        Http http = new Http();
+        
+        HttpRequest Request = new HttpRequest();
+        Request.setEndpoint(endPointURL);
+        Request.setMethod(AnimalLocator.METHOD_POST);
+        
+        if ( !AnimalLocator.blank(mimeType) && !AnimalLocator.blank(payload)) {
+        	Request.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        	Request.setBody(payload);
+        }
+        
+        HttpResponse Response = http.send(request); 
+        System.debug('post->target url:' + endPointURL + ' http ecode:' +Response.getStatusCode() + ' ,status: ' + Response.getStatus());
+        return response;
+    } 
+	*/
+    /*
+    public static void getAnimals( ) {
+        
+    	HttpResponse Response = AnimalLocator.get(AnimalLocator.ENDPOINT );
+      	
+        if ( !AnimalLocator.requestSuccessful(Response)){
+      		return ;
+      	}
+      
+        Map<String,Object> payload = AnimalLocator.deserializeResponseBody(Response);
+        
+      	List<Object> animals = (List<Object>) payload.get('animals');
+        
+   		System.debug('Received the following animals:');
+    
+        for (Object animal: animals) {
+        	System.debug(animal);
+    	}
+        
+      	return ;  
+    }
+	*/
+                
+    public static String getAnimalNameById( Integer animalId ) {
+        
+    	HttpResponse Response = AnimalLocator.get(AnimalLocator.ENDPOINT + '/' + animalId);   
+        
+        if ( !AnimalLocator.requestSuccessful(Response)){
+            
+      		return ((String)null);
+            
+      	}
+        
+      	Map<String,Object> payload = AnimalLocator.deserializeResponseBody(Response);
+        
+      	if ( payload != null && payload.containsKey('animal')) {            
+            
+     		Map<String,Object> animalAttribute = (Map<String,Object>) payload.get('animal');   	
+            
+            if ( animalAttribute != null && animalAttribute.containsKey('name') ) {                
+                String nameOfAnimal = (String)animalAttribute.get('name');
+                System.debug('getAnimalNameById:' + nameOfAnimal);
+                return (nameOfAnimal);
+                
+            }
+      	}        
+        return ((String)null);
+
+    }
+}
+
+@isTest
+public class AnimalLocatorTest {
+    
+    public static final List<String> Resources = new List<String>{'AnimalLocatorHTTPS_Test_AnimalID1','AnimalLocatorHTTPS_Test_AnimalID0','AnimalLocator_AllAnimals'};
+    
+    @isTest static void testTaskStaticFinals() {
+        
+        System.assertEquals(200,AnimalLocator.HTTP_OK,'HTTP Error Code Verification must be 200');
+        
+        System.assertEquals(201,AnimalLocator.HTTP_CREATED,'HTTP Error Code Verification must be 201');
+        
+        System.assertEquals('Content-Type',AnimalLocator.HEADER_ATTR_CONTENTTYPE,'Content type is not as expected');
+        System.assertEquals('application/json;charset=UTF-8',AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8,'JSON UTF8 Mismatch');
+                
+        System.assertEquals('GET',AnimalLocator.METHOD_GET,'GET Method Mismatch');
+        
+        System.assertEquals('POST',AnimalLocator.METHOD_POST,'POST Method Mistmatch');
+        
+    }
+    
+    @isTest static void testTaskResourceExist () {
+        
+    	String testRes = null;
+        for ( String res : AnimalLocatorTest.Resources ) {
+            try {
+				testRes = res;
+                StaticResourceCalloutMock mock= new StaticResourceCalloutMock();
+        		mock.setStaticResource(res);
+                
+            } catch (Exception ex ) {
+                System.assert(false, 'undefined resource ' + Testres);
+            }
+            
+        }
+        
+        
+    }
+    
+    @isTest static void testTaskdeserializeResponseBody() {
+        System.assertEquals(null, AnimalLocator.deserializeResponseBody( new HttpResponse() ));
+    }
+        
+    
+    @isTest static void testTaskSimplePayloadAnimalFound() {
+                
+        StaticResourceCalloutMock mock = new StaticResourceCalloutMock();
+        mock.setStaticResource(AnimalLocatorTest.Resources.get(0));
+        
+        mock.setStatusCode(AnimalLocator.HTTP_OK);
+        mock.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        
+        Test.setMock(HttpCalloutMock.class, mock);
+        
+        String animalName = AnimalLocator.getAnimalNameById(1);
+        
+        System.assertEquals('chicken',animalName,'The name of the animal should be chicken');
+                
+    }
+    
+     @isTest static void testTaskSimplePayloadAnimalNotFound() {
+                
+        StaticResourceCalloutMock mock = new StaticResourceCalloutMock();
+        mock.setStaticResource(AnimalLocatorTest.Resources.get(1));
+        mock.setStatusCode(AnimalLocator.HTTP_OK);
+        mock.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        
+        Test.setMock(HttpCalloutMock.class, mock);
+        
+        String animalName = AnimalLocator.getAnimalNameById(0);
+        
+        System.assertEquals('',animalName,'The name of the animal should be null');
+                
+    }
+    
+     @isTest static void testTaskSimplePayloadJSONElementNotFound() {
+                
+        StaticResourceCalloutMock mock = new StaticResourceCalloutMock();
+        mock.setStaticResource(AnimalLocatorTest.Resources.get(2));
+        mock.setStatusCode(AnimalLocator.HTTP_OK);
+        mock.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        
+        Test.setMock(HttpCalloutMock.class, mock);
+        
+        String animalName = AnimalLocator.getAnimalNameById(0);
+        
+        System.assertEquals(null,animalName,'The name of the animal should be null');
+                
+    }
+    
+     @isTest static void testTaskSimplePayloadResourceNotFound() {
+                
+        StaticResourceCalloutMock mock = new StaticResourceCalloutMock();
+        mock.setStaticResource(AnimalLocatorTest.Resources.get(1));
+        mock.setStatusCode(204);
+        mock.setHeader(AnimalLocator.HEADER_ATTR_CONTENTTYPE, AnimalLocator.MIMETYPE_JSONPAYLOAD_UTF8);
+        
+        Test.setMock(HttpCalloutMock.class, mock);
+        
+        String animalName = AnimalLocator.getAnimalNameById(0);
+        
+        System.assertEquals(null,animalName,'The name of the animal should be null');
+                
+    }
+    
+    
+
+}
